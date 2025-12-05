@@ -7,34 +7,46 @@ import {
   TouchableOpacity,
   Alert,
   SafeAreaView,
+  RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { auth, db } from '../../config/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, onSnapshot } from 'firebase/firestore';
 
 export default function EventListScreen() {
   const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
+  // Load events with real-time updates
   useEffect(() => {
-    loadEvents();
-  }, []);
+    const eventsQuery = query(
+      collection(db, 'events'),
+      orderBy('createdAt', 'desc')
+    );
 
-  const loadEvents = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'events'));
+    const unsubscribe = onSnapshot(eventsQuery, (snapshot) => {
       const eventsData = [];
-      querySnapshot.forEach((doc) => {
+      snapshot.forEach((doc) => {
         eventsData.push({ id: doc.id, ...doc.data() });
       });
       setEvents(eventsData);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to load events');
-    } finally {
       setLoading(false);
-    }
-  };
+      setRefreshing(false);
+    }, (error) => {
+      Alert.alert('Error', 'Failed to load events');
+      setLoading(false);
+      setRefreshing(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Also refresh when screen comes into focus
+  useFocusEffect(() => {
+    setRefreshing(true);
+  });
 
   const handleSignOut = async () => {
     try {
@@ -45,16 +57,22 @@ export default function EventListScreen() {
     }
   };
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    // The real-time listener will update automatically
+  };
+
   const renderEventItem = ({ item }) => (
     <TouchableOpacity
       style={styles.eventCard}
       onPress={() => router.push(`/event-detail?id=${item.id}`)}
     >
       <Text style={styles.eventTitle}>{item.title}</Text>
-      <Text style={styles.eventLocation}>{item.location}</Text>
+      <Text style={styles.eventLocation}> {item.location}</Text>
       <Text style={styles.eventDate}>
-        {item.date ? new Date(item.date.seconds * 1000).toLocaleDateString() : 'Date not set'}
+         {item.date ? new Date(item.date.seconds * 1000).toLocaleDateString() : 'Date not set'}
       </Text>
+      <Text style={styles.eventTime}> {item.time || 'Time not set'}</Text>
     </TouchableOpacity>
   );
 
@@ -87,6 +105,12 @@ export default function EventListScreen() {
           keyExtractor={(item) => item.id}
           renderItem={renderEventItem}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -138,15 +162,23 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 8,
+    color: '#333',
   },
   eventLocation: {
     color: '#666',
-    marginBottom: 3,
+    marginBottom: 4,
+    fontSize: 14,
   },
   eventDate: {
     color: '#2196F3',
     fontWeight: '500',
+    marginBottom: 2,
+    fontSize: 13,
+  },
+  eventTime: {
+    color: '#666',
+    fontSize: 13,
   },
   createButton: {
     backgroundColor: '#2196F3',

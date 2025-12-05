@@ -1,3 +1,4 @@
+import { createUserDocument } from '../../utils/firebaseHelpers';
 import { useState } from 'react';
 import {
   View,
@@ -43,13 +44,15 @@ export default function AuthScreen() {
     setLoading(true);
 
     try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        await createUserWithEmailAndPassword(auth, email, password);
-      }
-      router.replace('/tabs');
-    } catch (error) {
+        if (isLogin) {
+          await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          // Create user document for new users
+          await createUserDocument(userCredential.user, { email });
+        }
+        router.replace('/tabs');
+      } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);

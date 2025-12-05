@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBKRX3rr9smMVjFtNkEbGHeSGMwQn-6FK4",
-  authDomain: "eventmanagementapp-be4b5.firebaseapp.com",
+  authDomain: "eventmanagementapp-be4b5.firebaseapp.com", 
   projectId: "eventmanagementapp-be4b5",
   storageBucket: "eventmanagementapp-be4b5.firebasestorage.app",
   messagingSenderId: "1067596592488",

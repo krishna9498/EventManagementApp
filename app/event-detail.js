@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { toggleFavorite } from '../utils/firebaseHelpers';
 
 export default function EventDetailScreen() {
   const router = useRouter();
@@ -62,33 +63,30 @@ export default function EventDetailScreen() {
     }
   };
 
-  const toggleFavorite = async () => {
+  const handleToggleFavorite = async () => {
     if (!auth.currentUser) {
       Alert.alert('Error', 'You must be logged in to favorite events');
       return;
     }
 
     try {
-      const userRef = doc(db, 'users', auth.currentUser.uid);
-      
-      if (isFavorite) {
-        // Remove from favorites
-        await updateDoc(userRef, {
-          favorites: arrayRemove(id)
-        });
-        setIsFavorite(false);
-        Alert.alert('Success', 'Removed from favorites');
-      } else {
-        // Add to favorites
-        await updateDoc(userRef, {
-          favorites: arrayUnion(id)
-        });
-        setIsFavorite(true);
-        Alert.alert('Success', 'Added to favorites');
-      }
+      const newFavoriteStatus = await toggleFavorite(
+        auth.currentUser.uid,
+        id,
+        isFavorite
+      );
+      setIsFavorite(newFavoriteStatus);
+      Alert.alert(
+        'Success',
+        newFavoriteStatus ? 'Added to favorites' : 'Removed from favorites'
+      );
     } catch (error) {
       Alert.alert('Error', 'Failed to update favorites');
     }
+  };
+
+  const handleEditEvent = () => {
+    router.push(`/edit-event?id=${id}`);
   };
 
   const handleDeleteEvent = () => {
@@ -113,10 +111,6 @@ export default function EventDetailScreen() {
         }
       ]
     );
-  };
-
-  const handleEditEvent = () => {
-    Alert.alert('Edit Event', 'Edit functionality will be implemented in next version');
   };
 
   if (loading) {
@@ -146,39 +140,39 @@ export default function EventDetailScreen() {
           <Text style={styles.eventTitle}>{event.title}</Text>
           
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>📍 Location:</Text>
+            <Text style={styles.detailLabel}>Location:</Text>
             <Text style={styles.detailValue}>{event.location}</Text>
           </View>
           
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>📅 Date:</Text>
+            <Text style={styles.detailLabel}>Date:</Text>
             <Text style={styles.detailValue}>
               {event.date ? new Date(event.date.seconds * 1000).toLocaleDateString() : 'Not set'}
             </Text>
           </View>
           
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>⏰ Time:</Text>
+            <Text style={styles.detailLabel}>Time:</Text>
             <Text style={styles.detailValue}>{event.time || 'Not set'}</Text>
           </View>
           
           {event.category && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>🏷️ Category:</Text>
+              <Text style={styles.detailLabel}>Category:</Text>
               <Text style={styles.detailValue}>{event.category}</Text>
             </View>
           )}
           
           {event.price && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>💰 Price:</Text>
+              <Text style={styles.detailLabel}>Price:</Text>
               <Text style={styles.detailValue}>{event.price}</Text>
             </View>
           )}
           
           {event.capacity && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>👥 Capacity:</Text>
+              <Text style={styles.detailLabel}>Capacity:</Text>
               <Text style={styles.detailValue}>{event.capacity} people</Text>
             </View>
           )}
@@ -196,7 +190,7 @@ export default function EventDetailScreen() {
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={[styles.actionButton, isFavorite ? styles.favoriteActive : styles.favorite]}
-              onPress={toggleFavorite}
+              onPress={handleToggleFavorite}
             >
               <Text style={styles.actionButtonText}>
                 {isFavorite ? '❤️ Remove Favorite' : '🤍 Add to Favorites'}
