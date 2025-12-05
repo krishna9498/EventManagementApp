@@ -1,7 +1,7 @@
 {
   "name": "eventmanagementapp",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -17,6 +17,7 @@
     "expo": "~54.0.25",
     "expo-image": "~3.0.10",
     "expo-image-picker": "~17.0.8",
+    "expo-router": "~4.0.5",
     "expo-status-bar": "~3.0.8",
     "firebase": "^12.6.0",
     "react": "19.1.0",
